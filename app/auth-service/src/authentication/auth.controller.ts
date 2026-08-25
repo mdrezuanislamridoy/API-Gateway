@@ -1,11 +1,10 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { CurrentUser } from './decorators/current-user.decorator';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { JwtAuthGuard, JwtPayload } from './guards/jwt-auth.guard';
-
-type AuthenticatedRequest = Request & { user: JwtPayload };
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import type { JwtPayload } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -23,7 +22,7 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  me(@Req() request: AuthenticatedRequest) {
-    return request.user;
+  me(@CurrentUser() user: JwtPayload) {
+    return user;
   }
 }
