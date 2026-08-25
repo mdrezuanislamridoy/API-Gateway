@@ -46,5 +46,52 @@ services:
       auth-db-init:
         condition: service_completed_successfully
 
+  order-db:
+    image: postgres:16-alpine
+    container_name: order-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: order_db
+    ports:
+      - '5433:5432'
+    volumes:
+      - order-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d order_db']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  order-db-init:
+    build:
+      context: .
+      dockerfile: app/order-service/Dockerfile
+      target: builder
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@order-db:5432/order_db?schema=public
+    depends_on:
+      order-db:
+        condition: service_healthy
+    command: pnpm exec prisma db push --config app/order-service/prisma.config.ts
+
+  order-service:
+    build:
+      context: .
+      dockerfile: app/order-service/Dockerfile
+    container_name: order-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DATABASE_URL: postgresql://postgres:postgres@order-db:5432/order_db?schema=public
+    ports:
+      - '3003:3003'
+    depends_on:
+      order-db-init:
+        condition: service_completed_successfully
+
 volumes:
   auth-postgres-data:
+  order-postgres-data:
