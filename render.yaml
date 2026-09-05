@@ -1,0 +1,104 @@
+# Render Blueprint Specification
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  # ---------------------------------------------------------------------------
+  # API Gateway (Public Web Service)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: api-gateway
+    runtime: docker
+    dockerfilePath: app/api-gateway/Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: AUTH_SERVICE_URL
+        fromService:
+          type: web
+          name: auth-service
+          property: host
+          # Constructed as http://<host>:3001
+      - key: PRODUCT_SERVICE_URL
+        fromService:
+          type: web
+          name: product-service
+          property: host
+      - key: ORDER_SERVICE_URL
+        fromService:
+          type: web
+          name: order-service
+          property: host
+
+  # ---------------------------------------------------------------------------
+  # Auth Service
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: auth-service
+    runtime: docker
+    dockerfilePath: app/auth-service/Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: microservice-db
+          property: connectionString
+
+  # ---------------------------------------------------------------------------
+  # Product Service
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: product-service
+    runtime: docker
+    dockerfilePath: app/product-service/Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 3002
+      - key: DATABASE_URL
+        fromDatabase:
+          name: microservice-db
+          property: connectionString
+
+  # ---------------------------------------------------------------------------
+  # Order Service
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: order-service
+    runtime: docker
+    dockerfilePath: app/order-service/Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 3003
+      - key: DATABASE_URL
+        fromDatabase:
+          name: microservice-db
+          property: connectionString
+
+# -----------------------------------------------------------------------------
+# Managed PostgreSQL Database
+# Render's free tier allows 1 free PostgreSQL database per account.
+# All 3 services safely share this instance without table name conflicts:
+# - auth-service uses `User`
+# - product-service uses `Product`
+# - order-service uses `Order`, `OrderItem`, `OrderStatus`
+# -----------------------------------------------------------------------------
+databases:
+  - name: microservice-db
+    databaseName: microservice_db
+    user: postgres
+    plan: free
+    region: oregon
