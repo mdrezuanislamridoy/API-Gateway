@@ -7,6 +7,9 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
+    "build:gateway": "tsc -p app/api-gateway/tsconfig.build.json",
+    "start:gateway": "node app/api-gateway/dist/main.js",
+    "start:gateway:dev": "ts-node -r tsconfig-paths/register app/api-gateway/src/main.ts",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
